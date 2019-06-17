@@ -1,0 +1,3 @@
+input:
+  class: File
+  path: https://github.com/uniqueg/cwltool/blob/master/requirements.txt

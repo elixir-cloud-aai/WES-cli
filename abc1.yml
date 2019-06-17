@@ -1,0 +1,23 @@
+# fix the paths first
+curl_reference_genome_url:
+  class: File
+  path: http://...
+curl_fastq_urls:
+  class: File  
+  path: http://...
+curl_known_indels_url:
+  class: File
+  path: http://...
+curl_known_sites_url:
+  class: File
+  path: http://...
+
+readgroup_str: "@RG\\tID:H947YADXX\\tSM:NA12878\\tPL:ILLUMINA"
+sample_name: "abc122"
+threads:  "10"
+gqb: [20, 25, 30, 35, 40, 45, 50, 70, 90, 99]
+# output file transfer
+# lftp mirrors the directory to the given server 
+lftp_out_conf:
+  class: File
+  path: http://...
