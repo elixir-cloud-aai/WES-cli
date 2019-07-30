@@ -83,6 +83,7 @@ def post_run(
     workflow_type_version,
     workflow_url
 ):
+    post_run_id = ""
     post_run_id = client.WorkflowExecutionService.RunWorkflow(
           _request_options={"headers": {"Authorization": token}},
           workflow_params=workflow_params,
@@ -90,6 +91,8 @@ def post_run(
           workflow_type_version=workflow_type_version,
           workflow_url=workflow_url
     ).response(timeout=60, fallback_result=[]).result
+    if post_run_id == "" :
+       print("error getting post run id")
 
     return post_run_id
 

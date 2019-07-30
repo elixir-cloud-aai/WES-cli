@@ -126,7 +126,7 @@ def pollJob(client,token,jobid,workflow_parameters_file):
     return 
 
 def getToken():
-    
+    # this command does not return token string 
     os.system('auth -g')
     try:
       with open('access_token.txt', 'r') as f:

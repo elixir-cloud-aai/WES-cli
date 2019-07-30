@@ -7,12 +7,38 @@ import getopt
 import requests
 import qrcode
 import sys
+from configparser import ConfigParser
+import os.path
+import traceback
 
-def get_auth_credentials():
+def parse_authentication_config_file(path):
+    try:
+        config = ConfigParser()
+        config.read(path)
+        config_vars = {
+           'client_id' : config.get('authentication','client_id'),
+           'client_s' : config.get('authentication','client_secret'),
+           'url_auth' : config.get('authentication','url_auth'),
+           'url_token' : config.get('authentication','url_token')
+        }
+    except Exception:
+        print("Exception in user code:")
+        print("-"*60)
+        traceback.print_exc(file=sys.stdout)
+        print("-"*60)
+        print("Cannot read the configuration file "+path)
+        sys.exit(2)
+    return  namedtuple("Config", config_vars.keys())(*config_vars.values())
+
+
+
+def get_auth_credentials(authentication_parameters_file):
+
+    config = parse_authentication_config_file(authentication_parameters_file)
     """Make request to authentication server and retrieve remote authentication credentials."""
-    client_id='put client id here'
-    client_s='put client secret here' 
-    url_auth='https://login.elixir-czech.org/oidc/devicecode'
+    client_id=config.client_id
+    client_s=config.client_s
+    url_auth=config.url_auth
 
     # Make a request to authentication server
     response = requests.post(url_auth,
@@ -20,13 +46,15 @@ def get_auth_credentials():
                              data={'client_id': client_id, 'scope':'openid groupNames'}) 
     #config.claims})
     if 'error' in response.json():
-        print({response.json()["error"]} +':'+ {response.json()["error_description"]})
+        print({response.json()["error"]})
+        print (" : ")
+        print ({response.json()["error_description"]})
     return response.json()
 
 
 def remote_auth_instructions(credentials):
     """Print remote authentication instructions for user."""
-
+    url =""
     # Extract remote authentication address, or construct it if complete uri is not available
     if 'verification_uri_complete' in credentials:
         url = credentials['verification_uri_complete']
@@ -43,15 +71,15 @@ def remote_auth_instructions(credentials):
     print(qr_code(url))
 
 
-def poll_for_token(credentials):
+def poll_for_token(credentials,authentication_parameters_file):
     device_code = str(credentials['device_code'])
     timeout = 120
     interval = 1
 
-    url_token='https://login.elixir-czech.org/oidc/token'
-    client_id='put client id here'
-    client_s='put client secret here'
-
+    config = parse_authentication_config_file(authentication_parameters_file)
+    client_id=config.client_id
+    client_s=config.client_s
+    url_token=config.url_token
     while True:
         time.sleep(interval)
         timeout -= interval
@@ -142,8 +170,7 @@ def make_userinfo_request(token_response):
     return userinfo_response.json()
 
 def save_token(token):
-    """Save access token to file."""
-    with open('access_token.txt', 'w') as f:
+    with open('access_token.txt', 'w+') as f:
         f.write(token)
     os.chmod('access_token.txt',0o600)    
     print("The Access Token is saved into access_token.txt file.")
@@ -173,24 +200,26 @@ def load_token():
                 return f.read()
         else:
            # EGA Data API doesn't allow tokens that are older than one hour
-            if Debug: print('Found a saved access token, but it was over an hour old. Proceed with authentication.')
-            return ''
+            if Debug: print('Found a saved access token, but it was old. Proceed with authentication.')
+            return None
     except FileNotFoundError as e:
         if Debug: print('No fresh saved access tokens found, proceed with authentication.')
+        return None
 
 
-
-def getToken():
+def getToken(authentication_parameters_file):
     """Start remote authentication workflow."""
     Debug = False
+    
     # check if we have a valid token
     token = load_token()
+    # None or token
     if token: 
        # return token
        return
-    credentials = get_auth_credentials()
+    credentials = get_auth_credentials(authentication_parameters_file)
     remote_auth_instructions(credentials)
-    token_response = poll_for_token(credentials)
+    token_response = poll_for_token(credentials,authentication_parameters_file)
      
     if 'access_token' in token_response:
 
@@ -226,7 +255,12 @@ def main():
             usage()
             sys.exit()
          elif o in ('-g', '--getToken'):     
-            getToken()
+            authentication_configuration_file="auth.cfg"
+            if not os.path.isfile(authentication_configuration_file):
+                   print ("The given configuration file in main is not there!")
+                   sys.exit(2)
+
+            getToken(authentication_configuration_file)
             sys.exit(0)
          elif o in ('-d', '--deleteToken'):
             deleteToken()
