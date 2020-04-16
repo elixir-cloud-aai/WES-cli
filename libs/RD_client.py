@@ -206,7 +206,7 @@ def main():
     else: 
        token = "Bearer "+token
 
-    WES_URL='http://193.167.189.73:7777/ga4gh/wes/v1/swagger.json'
+    WES_URL="https://wes-csc-wes.rahtiapp.fi/ga4gh/wes/v1/swagger.json"
 
     if Debug: print("Init client")
 

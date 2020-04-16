@@ -43,7 +43,7 @@ def get_auth_credentials(authentication_parameters_file):
     # Make a request to authentication server
     response = requests.post(url_auth,
                              auth=(client_id, client_s),
-                             data={'client_id': client_id, 'scope':'openid groupNames'}) 
+                             data={'client_id': client_id, 'scope':'openid eduperson_entitlement ga4gh_passport_v1'}) 
     #config.claims})
     if 'error' in response.json():
         print({response.json()["error"]})
@@ -90,7 +90,7 @@ def poll_for_token(credentials,authentication_parameters_file):
                                        data={'grant_type': 'urn:ietf:params:oauth:grant-type:device_code',
                                              'device_code': device_code,
                                              'client_id': client_id,
-                                             'scope': 'openid groupNames'
+                                             'scope': 'openid eduperson_entitlement ga4gh_passport_v1'
                                             })
 
         if 'error' in token_response.json():

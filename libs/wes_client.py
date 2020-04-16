@@ -6,6 +6,7 @@ from bravado.requests_client import RequestsClient
 from bravado.client import SwaggerClient,SwaggerFormat
 from bravado_core.response import OutgoingResponse, validate_response
 from bravado.swagger_model import Loader
+from bravado.exception import BravadoTimeoutError
 
 def init_client(
         url,
@@ -14,7 +15,7 @@ def init_client(
         validate_requests=False,
         validate_swagger_spec=False,
         use_models=False,
-        ssl_verify=False
+        ssl_verify=True,
 ):
 
     """Init client"""
@@ -45,7 +46,7 @@ def get_service_info(client,token):
 
     return client.WorkflowExecutionService.GetServiceInfo(
         _request_options={"headers": {"Authorization": token}}
-    ).response(timeout=0.5, fallback_result=[]).result
+    ).response(timeout=5, fallback_result=[]).result
 
 def get_runs(client,token):
 
@@ -84,17 +85,20 @@ def post_run(
     workflow_url
 ):
     post_run_id = ""
-    post_run_id = client.WorkflowExecutionService.RunWorkflow(
+    post_run_response = client.WorkflowExecutionService.RunWorkflow(
           _request_options={"headers": {"Authorization": token}},
           workflow_params=workflow_params,
           workflow_type=workflow_type,
           workflow_type_version=workflow_type_version,
           workflow_url=workflow_url
-    ).response(timeout=60, fallback_result=[]).result
-    if post_run_id == "" :
-       print("error getting post run id")
-
-    return post_run_id
+    ).response(timeout=5, fallback_result=BravadoTimeoutError)
+    post_run_id = post_run_response.result
+    if isinstance(post_run_id, BravadoTimeoutError):
+        raise BravadoTimeoutError("connection timed out")
+    elif not post_run_id:
+        raise ValueError("error getting post run id")
+    else:
+        return post_run_id
 
 def post_cancel_run(client,token, run_id):
 
